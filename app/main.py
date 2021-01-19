@@ -1,55 +1,34 @@
 from fastapi import FastAPI, HTTPException, status, Depends
-from sqlalchemy.orm import Session, Query
-from app.hashpassword import verify_password, get_password_hash
+from sqlalchemy.orm import Session
 from app.crud import findByEmail, findByusername
+from app.auth import NotConfirmPassword
 from app.db import get_db
-from app.model import User_list
-from app.schema import loginUser, signupUser
-
-
-async def authLogin(user: loginUser, db: Session):
-    userDb: Query = findByEmail(user.email, db)
-    if userDb.count():
-        verify_password(user.password, )
-
-
-def confirmPasswordCheck(password: str, confirmPassword: str):
-    if(password != confirmPassword):
-        return 0
-    else:
-        return 1
+from app.crud import create_user
+from app.schema import LoginUser, SignupUser
 
 
 app = FastAPI()
 
 
 @app.post("/signup", status_code=status.HTTP_201_CREATED)
-def createUser(user: signupUser, db: Session = Depends(get_db)):
-    emailDb: Query = findByEmail(user.email, db)
-    if(emailDb.count()):
+def create_User(user: SignupUser, db: Session = Depends(get_db)):
+    if(findByEmail(user.email, db) != None):
         raise HTTPException(
             status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Email already taken")
-    usenameDb: Query = findByusername(user.username, db)
-    if(usenameDb.count()):
+    if(findByusername(user.username, db) != None):
         raise HTTPException(
             status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="Username already taken")
-    if(confirmPasswordCheck(user.password, user.confirmPassword) == 0):
+    if(NotConfirmPassword(user.password, user.confirmPassword)):
         raise HTTPException(
             status_code=status.HTTP_406_NOT_ACCEPTABLE, detail="confirm Password doesnot match with Password")
-    hashPassowrd = get_password_hash(user.password)
-
-    to_create = User_list(
-        email=user.email,
-        username=user.username,
-        password=hashPassowrd
-    )
-    db.add(to_create)
-    db.commit()
-    return {"success": "ok"}
+    dbuser = create_user(db, user)
+    return {
+        "success": "OK",
+        "user": dbuser}  # Testing er jono I have to remove this
 
 
 @app.post("/login")
-async def loginUser(user: loginUser, db: Session = Depends(get_db)):
+async def login_User(user: LoginUser, db: Session = Depends(get_db)):
 
     # else:
     raise HTTPException(
