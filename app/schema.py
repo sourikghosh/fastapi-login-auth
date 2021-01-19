@@ -1,8 +1,9 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import orm
 
 
-class user(BaseModel):
+class User(BaseModel):
     username: Optional[str] = Field(
         None, title="Full Name Optional Args"
     )
@@ -17,11 +18,18 @@ class user(BaseModel):
     )
 
 
-class loginUser(user):
+class LoginUser(User):
     email: EmailStr
     password: str = Field(min_length=12, max_length=100)
 
 
-class signupUser(loginUser):
+class SignupUser(LoginUser):
     username: str = Field(min_length=8, max_length=100)
     confirmPassword: str = Field(min_length=12, max_length=100)
+
+
+class UserInDb(LoginUser):
+    username: str = Field(min_length=8, max_length=100)
+
+    class Config:
+        orm_mode = True
